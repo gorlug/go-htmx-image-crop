@@ -1,0 +1,13 @@
+{{ define "imageDisplay"}}
+    <div>
+        <button type="button"
+                data-hx-get="/crop"
+                data-hx-target="#image"
+                data-hx-push-url="false"
+                id="cropButton"
+        >
+            Crop
+        </button>
+    </div>
+    <img src="/image{{.DateQueryParam}}" alt="The uploaded image">
+{{end}}

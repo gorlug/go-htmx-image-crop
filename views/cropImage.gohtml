@@ -1,0 +1,69 @@
+{{ define "cropImage" }}
+    <div>
+        <form
+                id="cropForm"
+                data-hx-encoding="multipart/form-data"
+                data-hx-push-url="false"
+                data-hx-target="#image"
+                data-hx-put="/crop"
+        >
+            {{/* Hide the file input because it will be set by the JavaScript code */}}
+            <input type="file" name="image" id="imageInput" style="display: none">
+            {{/* This hidden submit button was added because calling a script and
+                     then triggering the form did not work with HTMX. It would just execute
+                     a GET request.*/}}
+            <button type="submit" id="cropTrigger" style="display: none"></button>
+        </form>
+        <button id="save" type="button">Save</button>
+        <button id="rotate" type="button">Rotate</button>
+        <button id="cancel-crop" type="button"
+                data-hx-get="/crop/cancel"
+                data-hx-target="#image"
+        >Cancel
+        </button>
+        <progress id="cropProgress" value="0" max="100" style="width: 100%"></progress>
+    </div>
+    <div>
+        <img id="crop-image" src="/image" alt="Image to crop"
+             style="max-width: 100%; display: block">
+    </div>
+
+    <script>
+        (() => {
+            const image = document.getElementById('crop-image');
+            // initialize the crop library
+            const cropper = new Cropper(image, {
+                // allows rotation of the image
+                rotatable: true
+            });
+            // add handler to the crop button which calls the crop library to rotate the image
+            document.getElementById('rotate').addEventListener('click', function () {
+                image.cropper.rotate(90);
+            });
+
+            // during upload of the cropped image, update the upload progress bar
+            htmx.on('#cropForm', 'htmx:xhr:progress', function (evt) {
+                setProgressBarValue('#cropProgress', evt)
+            });
+
+            // init the save button
+            document.getElementById('save').addEventListener('click', function (evt) {
+                evt.preventDefault()
+                const canvas = cropper.getCroppedCanvas();
+                // convert the canvas of the cropper library to a blob
+                canvas.toBlob((blob) => {
+                    // https://stackoverflow.com/a/66466855
+                    // create a file from the blob
+                    const file = new File([blob], 'image.jpeg', {type: 'image/jpeg'});
+                    // create a DataTransfer container for the file
+                    const container = new DataTransfer();
+                    container.items.add(file);
+                    // the files of this DataTransfer can be added to the file input
+                    document.getElementById('imageInput').files = container.files
+                    // trigger the form submission
+                    document.getElementById('cropTrigger').click()
+                }, 'image/jpeg');
+            });
+        })()
+    </script>
+{{end}}
